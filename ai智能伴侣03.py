@@ -19,7 +19,7 @@ AI智能伴侣 v3.0 — 一个基于 Streamlit + DeepSeek 的 AI 聊天应用
 import streamlit as st
 import os
 from openai import OpenAI
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import json
 import uuid
 
@@ -140,7 +140,7 @@ def generate_session_name():
     加随机ID是为了防止你在一秒内点两次"新建会话"导致文件名冲突
     """
     # strftime：把日期时间格式化成字符串
-    time_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    time_str = (datetime.now(timezone.utc) + timedelta(hours=8)).strftime("%Y-%m-%d_%H-%M-%S")
     # uuid.uuid4().hex[:6]：生成一个随机字符串，取前6位
     random_id = uuid.uuid4().hex[:6]
     return f"{time_str}_{random_id}"
