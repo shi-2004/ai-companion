@@ -21,7 +21,6 @@ import os
 from openai import OpenAI
 from datetime import datetime, timedelta, timezone
 import json
-import uuid
 
 # ============================================================
 # 第二部分：页面全局配置（必须放在最前面，且只能调用一次）
@@ -132,18 +131,8 @@ SYSTEM_PROMPT_TEMPLATE = (
 # ============================================================
 
 def generate_session_name():
-    """
-    生成一个唯一的会话名称
-    格式：年月日_时分秒_随机6位ID
-    例如：2026-05-29_14-30-00_a1b2c3
-
-    加随机ID是为了防止你在一秒内点两次"新建会话"导致文件名冲突
-    """
-    # strftime：把日期时间格式化成字符串
-    time_str = (datetime.now(timezone.utc) + timedelta(hours=8)).strftime("%Y-%m-%d_%H-%M-%S")
-    # uuid.uuid4().hex[:6]：生成一个随机字符串，取前6位
-    random_id = uuid.uuid4().hex[:6]
-    return f"{time_str}_{random_id}"
+    """生成会话名称，格式：年月日_时分秒"""
+    return (datetime.now(timezone.utc) + timedelta(hours=8)).strftime("%Y-%m-%d_%H-%M-%S")
 
 
 def ensure_session_dir():
@@ -175,8 +164,10 @@ def save_session():
     - AI 回复完成后
     - 点击"新建会话"时
     """
-    # 如果还没有当前会话名称，说明初始化还没完成，跳过
+    # 如果还没有当前会话名称，或消息为空，不保存（避免产生空白记录）
     if not st.session_state.get("current_session"):
+        return
+    if not st.session_state.messages:
         return
 
     # 1. 确保文件夹存在
@@ -293,9 +284,7 @@ if "nick_name" not in st.session_state:
 if "character" not in st.session_state:
     st.session_state.character = DEFAULT_CHARACTER
 
-# 初始化当前会话名称（首次打开自动生成一个新的）
-if "current_session" not in st.session_state:
-    st.session_state.current_session = generate_session_name()
+# 初始化当前会话名称（不自动生成，发送第一条消息时才创建）
 
 # ============================================================
 # 第八部分：初始化 OpenAI 客户端（连接 DeepSeek API）
@@ -424,8 +413,9 @@ with st.sidebar:
 # 第十一部分：聊天区域（页面中央）
 # ============================================================
 
-# 显示当前会话名称（方便你知道自己在哪个会话里）
-st.caption(f"📌 当前会话：{st.session_state.current_session}")
+# 显示当前会话名称
+if st.session_state.get("current_session"):
+    st.caption(f"📌 当前会话：{st.session_state.current_session}")
 
 # 遍历并显示所有历史消息
 # msg["role"] 可以是 "user"（用户）或 "assistant"（AI 回复）
@@ -445,13 +435,17 @@ for msg in st.session_state.messages:
 # := 是"海象运算符"，意思是：赋值的同时做判断
 if prompt := st.chat_input("请输入您要问的问题"):
 
-    # ---- 步骤1：显示用户消息，并加入聊天记录 ----
+    # ---- 步骤1：无会话时自动创建 ----
+    if not st.session_state.get("current_session"):
+        st.session_state.current_session = generate_session_name()
+
+    # ---- 步骤2：显示用户消息，并加入聊天记录 ----
     with st.chat_message("user"):
         st.write(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
     save_session()  # 立即保存，防止用户消息丢失
 
-    # ---- 步骤2：调用 AI 大模型获取回复 ----
+    # ---- 步骤3：调用 AI 大模型获取回复 ----
     # 检查 API Key 是否已设置
     if client is None:
         st.error("❌ 未设置 DEEPSEEK_API_KEY 环境变量，无法调用 AI。\n\n"
