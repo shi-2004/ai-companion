@@ -235,6 +235,8 @@ def load_session(session_name):
             st.session_state.character = data.get("character", DEFAULT_CHARACTER)
             st.session_state.current_session = session_name
             st.session_state.messages = data.get("messages", [])
+            # 更新文件修改时间，让当前会话排到列表最上面
+            os.utime(file_path, None)
         else:
             st.warning(f"会话文件不存在：{session_name}")
     except Exception:
