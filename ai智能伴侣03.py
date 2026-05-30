@@ -67,8 +67,8 @@ if not os.path.exists(LOGO_PATH):
 #   - 你也可以在终端里先执行 export 来修改：
 #       export APP_USERNAME="你的账号"
 #       export APP_PASSWORD="你的密码"
-APP_USERNAME = os.getenv("APP_USERNAME", "admin")      # 登录账号
-APP_PASSWORD = os.getenv("APP_PASSWORD", "123456")     # 登录密码
+APP_USERNAME = os.getenv("APP_USERNAME", "shijin")      # 登录账号
+APP_PASSWORD = os.getenv("APP_PASSWORD", "shijin")     # 登录密码
 
 # 初始化登录状态（st.session_state 里的变量会在页面刷新后保留）
 if "logged_in" not in st.session_state:
